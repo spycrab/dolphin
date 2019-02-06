@@ -1,0 +1,19 @@
+language: cpp
+os: osx
+compiler: clang
+branches:
+  only:
+  - travify
+addons:
+ homebrew:
+   packages:
+   - ninja
+   - qt5
+git:
+  submodules: false
+script:
+- mkdir build
+- cd build
+- cmake -DQt5_DIR="$(find /usr/local/Cellar/qt -type d -depth 1)/lib/cmake/Qt5" -G Ninja ..
+- ninja
+
