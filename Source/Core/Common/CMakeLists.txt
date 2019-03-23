@@ -154,6 +154,9 @@ if(OPROFILE_FOUND)
   target_link_libraries(common PRIVATE OProfile::OProfile)
 endif()
 
+add_executable(directory_server NetplayDirectoryServer.cpp)
+target_link_libraries(directory_server PRIVATE common)
+
 if(UNIX)
   # Posix networking code needs to be fixed for Windows
   add_executable(traversal_server TraversalServer.cpp)
