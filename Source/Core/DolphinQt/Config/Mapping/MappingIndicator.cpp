@@ -23,7 +23,7 @@
 #include "InputCommon/ControllerEmu/Setting/NumericSetting.h"
 #include "InputCommon/ControllerInterface/Device.h"
 
-#include "DolphinQt/Config/Mapping/MappingWidget.h"
+#include "DolphinQt/Config/Mapping/MappingCommon.h"
 #include "DolphinQt/QtUtils/ModalMessageBox.h"
 #include "DolphinQt/Settings.h"
 

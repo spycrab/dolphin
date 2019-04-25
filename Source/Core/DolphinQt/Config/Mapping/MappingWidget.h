@@ -33,8 +33,6 @@ class Device;
 }
 }  // namespace ciface
 
-constexpr int INDICATOR_UPDATE_FREQ = 30;
-
 class MappingWidget : public QWidget
 {
   Q_OBJECT

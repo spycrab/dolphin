@@ -1,9 +1,10 @@
-find_package(Qt5 5.9 REQUIRED COMPONENTS Gui Widgets)
+find_package(Qt5 5.9 REQUIRED COMPONENTS Gui Widgets Quick QuickWidgets)
 
 set_property(TARGET Qt5::Core PROPERTY INTERFACE_COMPILE_FEATURES "")
 message(STATUS "Found Qt version ${Qt5Core_VERSION}")
 
 set(CMAKE_AUTOMOC ON)
+set(CMAKE_AUTORCC ON)
 
 add_executable(dolphin-emu
   AboutDialog.cpp
@@ -69,6 +70,7 @@ add_executable(dolphin-emu
   Config/Mapping/MappingNumeric.cpp
   Config/Mapping/MappingWidget.cpp
   Config/Mapping/MappingWindow.cpp
+  Config/Mapping/Visual/GCMappingWidget.cpp
   Config/Mapping/WiimoteEmuExtension.cpp
   Config/Mapping/WiimoteEmuGeneral.cpp
   Config/Mapping/WiimoteEmuMotionControl.cpp
@@ -128,6 +130,7 @@ add_executable(dolphin-emu
   TAS/StickWidget.cpp
   TAS/IRWidget.cpp
   Updater.cpp
+  Resources/Resources.qrc
 )
 
 target_compile_definitions(dolphin-emu
@@ -141,12 +144,16 @@ target_include_directories(dolphin-emu
 PRIVATE
   ${CMAKE_CURRENT_BINARY_DIR}
   ${Qt5Gui_PRIVATE_INCLUDE_DIRS}
+  ${Qt5Quick_PRIVATE_INCLUDE_DIRS}
+  ${Qt5QuickWidgets_PRIVATE_INCLUDE_DIRS}
 )
 
 target_link_libraries(dolphin-emu
 PRIVATE
   core
   Qt5::Widgets
+  Qt5::Quick
+  Qt5::QuickWidgets
   uicommon
   imgui
 )

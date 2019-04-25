@@ -44,7 +44,7 @@
       <AdditionalDependencies>avrt.lib;iphlpapi.lib;winmm.lib;setupapi.lib;opengl32.lib;glu32.lib;rpcrt4.lib;comctl32.lib;avcodec.lib;avformat.lib;avutil.lib;swresample.lib;swscale.lib;Shlwapi.lib;discord-rpc.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <ClCompile>
-      <AdditionalIncludeDirectories>$(ProjectDir)VideoInterface;$(ProjectDir)GameList;$(ProjectDir)Debugger;$(ProjectDir)Settings;$(ProjectDir)Config;$(ProjectDir)Config\Mapping;$(ProjectDir)Config\Graphics;$(ProjectDir)NetPlay;$(ProjectDir)QtUtils;$(ProjectDir)TAS;$(ProjectDir)FIFO;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)VideoInterface;$(ProjectDir)GameList;$(ProjectDir)Debugger;$(ProjectDir)Settings;$(ProjectDir)Config;$(ProjectDir)Config\Mapping;$(ProjectDir)Config\Mapping\Visual;$(ProjectDir)Config\Graphics;$(ProjectDir)NetPlay;$(ProjectDir)QtUtils;$(ProjectDir)TAS;$(ProjectDir)FIFO;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Manifest>
       <AdditionalManifestFiles>DolphinQt.manifest;%(AdditionalManifestFiles)</AdditionalManifestFiles>
@@ -86,6 +86,7 @@
     <QtMoc Include="Config\Mapping\MappingNumeric.h" />
     <QtMoc Include="Config\Mapping\MappingWidget.h" />
     <QtMoc Include="Config\Mapping\MappingWindow.h" />
+    <QtMoc Include="Config\Mapping\Visual\GCMappingWidget.h" />
     <QtMoc Include="Config\Mapping\WiimoteEmuExtension.h" />
     <QtMoc Include="Config\Mapping\WiimoteEmuGeneral.h" />
     <QtMoc Include="Config\Mapping\WiimoteEmuMotionControl.h" />
@@ -195,6 +196,7 @@
     <ClCompile Include="$(QtMocOutPrefix)FIFOPlayerWindow.cpp" />
     <ClCompile Include="$(QtMocOutPrefix)FilesystemWidget.cpp" />
     <ClCompile Include="$(QtMocOutPrefix)GCKeyboardEmu.cpp" />
+    <ClCompile Include="$(QtMocOutPrefix)GCMappingWidget.cpp" />
     <ClCompile Include="$(QtMocOutPrefix)GCMemcardManager.cpp" />
     <ClCompile Include="$(QtMocOutPrefix)GCMicrophone.cpp" />
     <ClCompile Include="$(QtMocOutPrefix)GCPadEmu.cpp" />
@@ -324,6 +326,7 @@
     <ClCompile Include="Config\Mapping\MappingNumeric.cpp" />
     <ClCompile Include="Config\Mapping\MappingWidget.cpp" />
     <ClCompile Include="Config\Mapping\MappingWindow.cpp" />
+    <ClCompile Include="Config\Mapping\Visual\GCMappingWidget.cpp" />
     <ClCompile Include="Config\Mapping\WiimoteEmuExtension.cpp" />
     <ClCompile Include="Config\Mapping\WiimoteEmuGeneral.cpp" />
     <ClCompile Include="Config\Mapping\WiimoteEmuMotionControl.cpp" />

@@ -83,6 +83,9 @@ void MappingButton::Detect()
 
   QString expression;
 
+  const auto old_text = text();
+  setText(QStringLiteral("..."));
+
   if (m_parent->GetParent()->IsMappingAllDevices())
   {
     expression = MappingCommon::DetectExpression(this, g_controller_interface,
@@ -95,6 +98,8 @@ void MappingButton::Detect()
                                                  {default_device_qualifier.ToString()},
                                                  default_device_qualifier);
   }
+
+  setText(old_text);
 
   if (expression.isEmpty())
     return;
