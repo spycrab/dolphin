@@ -463,6 +463,11 @@ bool VulkanContext::SelectDeviceExtensions(ExtensionList* extension_list, bool e
   if (enable_surface && !SupportsExtension(VK_KHR_SWAPCHAIN_EXTENSION_NAME, true))
     return false;
 
+  // TODO: Placeholder, actually load the relevant setting
+  bool exclusive_fullscreen = true;
+  if (exclusive_fullscreen && !SupportsExtension("VK_EXT_full_screen_exclusive", false))
+      WARN_LOG(VIDEO, "Vulkan: Exclusive fullscreen requested, but extension is not available");
+
   return true;
 }
 
