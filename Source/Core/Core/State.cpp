@@ -7,6 +7,7 @@
 #include <lzo/lzo1x.h>
 #include <map>
 #include <mutex>
+#include <queue>
 #include <string>
 #include <thread>
 #include <utility>
@@ -17,6 +18,7 @@
 #include "Common/Event.h"
 #include "Common/File.h"
 #include "Common/FileUtil.h"
+#include "Common/Flag.h"
 #include "Common/MsgHandler.h"
 #include "Common/ScopeGuard.h"
 #include "Common/StringUtil.h"
@@ -62,14 +64,13 @@ static AfterLoadCallbackFunc s_on_after_load_callback;
 
 // Temporary undo state buffer
 static std::vector<u8> g_undo_load_buffer;
-static std::vector<u8> g_current_buffer;
 static bool s_load_or_save_in_progress;
 
 static std::mutex g_cs_undo_load_buffer;
-static std::mutex g_cs_current_buffer;
 static Common::Event g_compressAndDumpStateSyncEvent;
 
 static std::thread g_save_thread;
+static Common::Flag g_save_quit_requested;
 
 // Don't forget to increase this after doing changes on the savestate system
 static const u32 STATE_VERSION = 111;  // Last changed in PR 6321
@@ -283,16 +284,13 @@ static std::map<double, int> GetSavedStates()
 
 struct CompressAndDumpState_args
 {
-  std::vector<u8>* buffer_vector;
-  std::mutex* buffer_mutex;
+  std::vector<u8> buffer_vector;
   std::string filename;
   bool wait;
 };
 
 static void CompressAndDumpState(CompressAndDumpState_args save_args)
 {
-  std::lock_guard<std::mutex> lk(*save_args.buffer_mutex);
-
   // ScopeGuard is used here to ensure that g_compressAndDumpStateSyncEvent.Set()
   // will be called and that it will happen after the IOFile is closed.
   // Both ScopeGuard's and IOFile's finalization occur at respective object destruction time.
@@ -306,8 +304,8 @@ static void CompressAndDumpState(CompressAndDumpState_args save_args)
   if (!save_args.wait)
     on_exit.Exit();
 
-  const u8* const buffer_data = &(*(save_args.buffer_vector))[0];
-  const size_t buffer_size = (save_args.buffer_vector)->size();
+  const u8* const buffer_data = save_args.buffer_vector.data();
+  const size_t buffer_size = save_args.buffer_vector.size();
   std::string& filename = save_args.filename;
 
   // For easy debugging
@@ -323,7 +321,7 @@ static void CompressAndDumpState(CompressAndDumpState_args save_args)
 
     if (!File::Rename(filename, File::GetUserPath(D_STATESAVES_IDX) + "lastState.sav"))
       Core::DisplayMessage("Failed to move previous state to state undo backup", 1000);
-    else
+    else if (File::Exists(filename + ".dtm"))
       File::Rename(filename + ".dtm", File::GetUserPath(D_STATESAVES_IDX) + "lastState.sav.dtm");
   }
 
@@ -386,6 +384,31 @@ static void CompressAndDumpState(CompressAndDumpState_args save_args)
   Host_UpdateMainFrame();
 }
 
+static std::mutex g_save_queue_mutex;
+std::queue<CompressAndDumpState_args> g_save_queue;
+
+static void CompressAndDumpStateThread()
+{
+  g_save_quit_requested.Clear();
+  while (!g_save_quit_requested.IsSet())
+  {
+    if (!g_save_queue.empty())
+    {
+      CompressAndDumpState_args args;
+
+      {
+        std::lock_guard<std::mutex> lk(g_save_queue_mutex);
+        args = g_save_queue.front();
+        g_save_queue.pop();
+      }
+
+      args.wait = false;
+
+      CompressAndDumpState(args);
+    }
+  }
+}
+
 void SaveAs(const std::string& filename, bool wait)
 {
   if (s_load_or_save_in_progress)
@@ -401,28 +424,27 @@ void SaveAs(const std::string& filename, bool wait)
         DoState(p);
         const size_t buffer_size = reinterpret_cast<size_t>(ptr);
 
-        // Then actually do the write.
-        {
-          std::lock_guard<std::mutex> lk(g_cs_current_buffer);
-          g_current_buffer.resize(buffer_size);
-          ptr = &g_current_buffer[0];
-          p.SetMode(PointerWrap::MODE_WRITE);
-          DoState(p);
-        }
+        std::vector<u8> buffer;
+
+        buffer.resize(buffer_size);
+        ptr = &buffer[0];
+        p.SetMode(PointerWrap::MODE_WRITE);
+        DoState(p);
 
         if (p.GetMode() == PointerWrap::MODE_WRITE)
         {
           Core::DisplayMessage("Saving State...", 1000);
 
           CompressAndDumpState_args save_args;
-          save_args.buffer_vector = &g_current_buffer;
-          save_args.buffer_mutex = &g_cs_current_buffer;
+          save_args.buffer_vector = std::move(buffer);
           save_args.filename = filename;
           save_args.wait = wait;
 
           Flush();
-          g_save_thread = std::thread(CompressAndDumpState, save_args);
-          g_compressAndDumpStateSyncEvent.Wait();
+          {
+            std::lock_guard<std::mutex> lk(g_save_queue_mutex);
+            g_save_queue.push(save_args);
+          }
         }
         else
         {
@@ -431,6 +453,8 @@ void SaveAs(const std::string& filename, bool wait)
         }
       },
       true);
+
+  g_compressAndDumpStateSyncEvent.Wait();
 
   s_load_or_save_in_progress = false;
 }
@@ -611,20 +635,23 @@ void Init()
 {
   if (lzo_init() != LZO_E_OK)
     PanicAlertT("Internal LZO Error - lzo_init() failed");
+
+  g_save_thread = std::thread(CompressAndDumpStateThread);
+  g_save_thread.detach();
 }
 
 void Shutdown()
 {
   Flush();
 
+  g_save_quit_requested.Set();
+
+  if (g_save_thread.joinable())
+    g_save_thread.join();
+
   // swapping with an empty vector, rather than clear()ing
   // this gives a better guarantee to free the allocated memory right NOW (as opposed to, actually,
   // never)
-  {
-    std::lock_guard<std::mutex> lk(g_cs_current_buffer);
-    std::vector<u8>().swap(g_current_buffer);
-  }
-
   {
     std::lock_guard<std::mutex> lk(g_cs_undo_load_buffer);
     std::vector<u8>().swap(g_undo_load_buffer);
@@ -680,9 +707,6 @@ void SaveFirstSaved()
 
 void Flush()
 {
-  // If already saving state, wait for it to finish
-  if (g_save_thread.joinable())
-    g_save_thread.join();
 }
 
 // Load the last state before loading the state
